@@ -77,24 +77,24 @@ int32_t msg10(sdo_prot_t *ps)
 
 		// data: [[[mstring,50],100]]
 		sdow_cbor = malloc(sizeof(sdow_cbor_t));
-		// sdow_cbor->child = malloc(sizeof(sdow_cbor_t));
 		sdow_init_cbor(sdow_cbor);
-		sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder, 1);
-		sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder->child, 2);
-		sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder->child->child, 2);
-		sdow_byte_string(sdow_cbor->sdo_sbor_encoder->child->child->child, mstring->bytes, mstring->byte_sz);
-		sdow_signed_int(sdow_cbor->sdo_sbor_encoder->child->child->child, 50);
-		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder->child->child);
-		sdow_signed_int(sdow_cbor->sdo_sbor_encoder->child->child, 100);
-		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder->child);
-		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder);
+		sdow_start_cbor_array(1);
+		sdow_start_cbor_array(2);
+		sdow_start_cbor_array(2);
+		sdow_byte_string(mstring->bytes, mstring->byte_sz);
+		sdow_signed_int(50);
+		sdow_end_cbor_array();
+		sdow_signed_int(100);
+		sdow_end_cbor_array();
+		sdow_end_cbor_array();
 
 		// [50]
-		/*sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder, 1);
-		sdow_signed_int(sdow_cbor->sdo_sbor_encoder->child, 50);
-		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder);*/
-
-		size_t finalLength = cbor_encoder_get_buffer_size(&sdow_cbor->sdo_sbor_encoder->cbor_encoder, sdow_cbor->buffer);
+/*		sdow_init_cbor(sdow_cbor);
+		sdow_start_cbor_array(1);
+		sdow_signed_int(50);
+		sdow_end_cbor_array();
+*/
+		size_t finalLength = cbor_encoder_get_buffer_size(&sdow_cbor->current->cbor_encoder, sdow_cbor->buffer);
 		long unsigned i;
 		for(i=0; i<finalLength; i++) {
 			printf("%02x", sdow_cbor->buffer[i]);

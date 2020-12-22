@@ -19,6 +19,9 @@
 
 #define SDO_TAG_MAX_LEN 32
 
+// current encoder
+sdow_cbor_encoder_t *current_encoder;
+
 /*
  * Internal function prototypes
  */
@@ -1053,51 +1056,47 @@ void sdo_write_byte_array_two_int(sdow_t *sdow, uint8_t *buf_iv,
 
 void sdow_init_cbor(sdow_cbor_t *sdow_cbor)
 {
-	/*if (memset_s(sdow_cbor, sizeof(*sdow_cbor), 0) != 0) {
-		LOG(LOG_ERROR, "SDOW memset() failed!\n");
-		return false;
-	}*/
-	sdow_cbor->sdo_sbor_encoder = malloc(sizeof(sdow_cbor_encoder_t));
+	sdow_cbor->current = malloc(sizeof(sdow_cbor_encoder_t));
+	sdow_cbor->current->next = NULL;
+	sdow_cbor->current->previous = NULL;
+
 	sdow_buffer_init_cbor(sdow_cbor);
-	cbor_encoder_init(&sdow_cbor->sdo_sbor_encoder->cbor_encoder, sdow_cbor->buffer, sdow_cbor->buffer_length, 0);
+	cbor_encoder_init(&sdow_cbor->current->cbor_encoder, sdow_cbor->buffer, sdow_cbor->buffer_length, 0);
+
+	current_encoder = sdow_cbor->current;
 }
 
 void sdow_buffer_init_cbor(sdow_cbor_t *sdow_cbor)
 {
-	/*if (sdow_cbor->buffer != NULL) {
-		sdo_free(sdow_cbor->buffer);
-	}*/
 	sdow_cbor->buffer_length = CBOR_BUFFER_LENGTH;
 	sdow_cbor->buffer = (uint8_t*) malloc(sdow_cbor->buffer_length);
 }
 
-void sdow_start_cbor_array(sdow_cbor_encoder_t *sdow_cbor_encoder, size_t array_items)
+void sdow_start_cbor_array(size_t array_items)
 {
-		// err = cbor_encoder_create_array(&sdow_cbor->parent_encoder, &sdow_cbor->child_encoder, array_items);
-		// sdow_cbor->child = NULL;
-		// sdow_cbor_t *buf = malloc(100);
-		// free(buf);
-		// sdow_cbor_t *temp = malloc(100);
-		sdow_cbor_encoder->child = malloc(sizeof(sdow_cbor_encoder_t));
-		cbor_encoder_create_array(&sdow_cbor_encoder->cbor_encoder, 
-			&sdow_cbor_encoder->child->cbor_encoder, array_items);
-	// cbor_assert(!err);
+	// create next, create backlink and move forward.
+	current_encoder->next = malloc(sizeof(sdow_cbor_encoder_t));
+	current_encoder->next->previous = current_encoder;
+	current_encoder = current_encoder->next;
+	cbor_encoder_create_array(&current_encoder->previous->cbor_encoder, 
+		&current_encoder->cbor_encoder, array_items);
 
 }
 
-void sdow_byte_string(sdow_cbor_encoder_t *sdow_cbor_encoder, uint8_t *bytes , size_t byte_sz)
+void sdow_byte_string(uint8_t *bytes , size_t byte_sz)
 {
-	cbor_encode_byte_string(&sdow_cbor_encoder->cbor_encoder, bytes, byte_sz);
+	cbor_encode_byte_string(&current_encoder->cbor_encoder, bytes, byte_sz);
 }
 
-void sdow_signed_int(sdow_cbor_encoder_t *sdow_cbor_encoder, int value)
+void sdow_signed_int(int value)
 {
-	cbor_encode_int(&sdow_cbor_encoder->cbor_encoder, value);
+	cbor_encode_int(&current_encoder->cbor_encoder, value);
 }
 
-void sdow_end_cbor_array(sdow_cbor_encoder_t *sdow_cbor_encoder)
+void sdow_end_cbor_array(void)
 {
-	cbor_encoder_close_container_checked(&sdow_cbor_encoder->cbor_encoder,
-		&sdow_cbor_encoder->child->cbor_encoder);
- 	// cbor_assert(!err);
+	cbor_encoder_close_container_checked(&current_encoder->previous->cbor_encoder,
+		&current_encoder->cbor_encoder);
+	// move backwards and free previous (TODO)
+	current_encoder = current_encoder->previous;
 }

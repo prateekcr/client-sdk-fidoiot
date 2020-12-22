@@ -42,17 +42,14 @@ typedef struct _SDOW_s {
 
 typedef struct _SDOW_CBOR_ENCODER {
 	CborEncoder cbor_encoder;
-	struct _SDOW_CBOR_ENCODER *child;
+	struct _SDOW_CBOR_ENCODER *next;
+	struct _SDOW_CBOR_ENCODER *previous;
 } sdow_cbor_encoder_t;
 
 typedef struct _SDOW_CBOR_S {
-	// CborEncoder parent_encoder;
-	// CborEncoder child_encoder;
 	size_t buffer_length;
 	uint8_t *buffer;
-	int msg_type;
-	sdow_cbor_encoder_t *sdo_sbor_encoder;
-	// struct _SDOW_CBOR_S *child;
+	sdow_cbor_encoder_t *current;
 } sdow_cbor_t;
 
 #define CBOR_BUFFER_LENGTH 1024;
@@ -123,10 +120,10 @@ void sdo_write_byte_array_two_int(sdow_t *sdow, uint8_t *buf_iv,
 // CBOR methods
 void sdow_init_cbor(sdow_cbor_t *sdow_cbor);
 void sdow_buffer_init_cbor(sdow_cbor_t *sdow_cbor);
-void sdow_start_cbor_array(sdow_cbor_encoder_t *sdow_cbor, size_t array_items);
-void sdow_byte_string(sdow_cbor_encoder_t *sdow_cbor, uint8_t *bytes , size_t byte_sz);
-void sdow_signed_int(sdow_cbor_encoder_t *sdow_cbor, int value);
-void sdow_end_cbor_array(sdow_cbor_encoder_t *sdow_cbor);
+void sdow_start_cbor_array(size_t array_items);
+void sdow_byte_string(uint8_t *bytes , size_t byte_sz);
+void sdow_signed_int(int value);
+void sdow_end_cbor_array(void);
 
 
 #if 0 // Deprecated
