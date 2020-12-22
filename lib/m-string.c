@@ -236,7 +236,7 @@ err:
  */
 #if defined(PK_ENC_ECDSA)
 #if defined(ECDSA256_DA) || defined(ECDSA384_DA)
-int ps_get_m_string(sdo_prot_t *ps)
+int ps_get_m_string_cbor(sdo_byte_array_t *mstring)
 {
 	int ret = -1;
 	uint32_t ofs = 0;
@@ -292,8 +292,16 @@ int ps_get_m_string(sdo_prot_t *ps)
 		LOG(LOG_ERROR, "Failed to copy csr-data\n");
 		goto err;
 	}
-
-	sdo_byte_array_write_chars(&ps->sdow, m_string);
+	// mstring = sdo_byte_array_alloc(m_string->byte_sz);
+	ret = memcpy_s(mstring->bytes, m_string_sz, m_string->bytes,
+		    	m_string->byte_sz);
+	mstring->byte_sz = m_string->byte_sz;
+	if (ret) {
+		LOG(LOG_ERROR, "Failed to copy mstring-data\n");
+		goto err;
+	}
+    return ret;
+	// sdo_byte_array_write_chars(&ps->sdow, m_string);
 
 err:
 	if (m_string)

@@ -177,6 +177,7 @@ typedef struct sdo_prot_s {
 	bool success;
 	sdor_t sdor;
 	sdow_t sdow;
+	sdow_cbor_t sdow_cbor;
 	uint8_t gid[GID_SIZE];
 	sdo_byte_array_t *g2; /* Our initial GUID */
 	sdo_ip_address_t i1;
@@ -264,4 +265,5 @@ void sdo_receive_error_message(sdor_t *sdor, int *ecode, int *msgnum,
 bool sdo_prot_rcv_msg(sdor_t *sdor, sdow_t *sdow, char *prot_name, int *statep);
 
 int ps_get_m_string(sdo_prot_t *ps);
+int ps_get_m_string_cbor(sdo_byte_array_t *mstring);
 #endif /* __SDOPROT_H__ */

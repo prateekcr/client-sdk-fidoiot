@@ -11,6 +11,8 @@
 
 #include "util.h"
 #include "sdoprot.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /* TODO: Move m-string generation here */
 
@@ -33,16 +35,73 @@ int32_t msg10(sdo_prot_t *ps)
 
 	/* Start the "m" string */
 	sdow_next_block(&ps->sdow, SDO_DI_APP_START);
-	sdow_begin_object(&ps->sdow);
-	sdo_write_tag(&ps->sdow, "m");
+	// sdow_begin_object(&ps->sdow);
+	// sdo_write_tag(&ps->sdow, "m");
+	// sdow_cbor_begin_object(&ps->sdow_cbor);
+	sdow_cbor_t *sdow_cbor;
+	sdow_cbor = malloc(sizeof(sdow_cbor_t));
+	// size_t length;
 
 #if !defined(DEVICE_TPM20_ENABLED)
-	/* Get the m-string in the ps object */
-	ret = ps_get_m_string(ps);
+	/* Get the m-string in the mstring object */
+	sdo_byte_array_t *mstring = sdo_byte_array_alloc(sizeof(sdo_byte_array_t));
+	ret = ps_get_m_string_cbor(mstring);
 	if (ret) {
-		LOG(LOG_ERROR, "Failed to get m-string in ps\n");
+		LOG(LOG_ERROR, "Failed to get m-string in mstring object\n");
 		goto err;
+	} else {
+		// length = mstring->byte_sz + 100;
+		// length = 1024;
+		// uint8_t *buffer = (uint8_t*) malloc(length);
+		// uint8_t buffer[length];
+		/*sdow_cbor->buffer_length = length;
+		sdow_cbor->buffer = (uint8_t*) malloc(sdow_cbor->buffer_length);
+		CborEncoder random;
+		cbor_encoder_init(&sdow_cbor->parent_encoder, sdow_cbor->buffer, sdow_cbor->buffer_length, 0);
+		cbor_encoder_create_array(&sdow_cbor->parent_encoder, &sdow_cbor->child_encoder, 1);
+		cbor_encoder_create_array(&sdow_cbor->child_encoder, &random, 1);
+		cbor_encode_byte_string(&random, mstring->bytes, mstring->byte_sz);
+		cbor_encoder_close_container_checked(&sdow_cbor->child_encoder, &random);
+		cbor_encoder_close_container_checked(&sdow_cbor->parent_encoder, &sdow_cbor->child_encoder);
+		size_t finalLength = cbor_encoder_get_buffer_size(&sdow_cbor->parent_encoder, sdow_cbor->buffer);
+		long unsigned i;
+		for(i=0; i<finalLength; i++) {
+			printf("%02x", sdow_cbor->buffer[i]);
+		}
+		printf("%s%zd\n", "Raw length", mstring->byte_sz);
+		printf("%s%zd\n", "Encoded length", finalLength);*/
+
+		free(sdow_cbor->buffer);
+		sdow_cbor->buffer = NULL;
+		// sdow_cbor->buffer = (uint8_t*) malloc(sdow_cbor->buffer_length);
+
+		// data: [[[mstring,50],100]]
+		sdow_cbor = malloc(sizeof(sdow_cbor_t));
+		// sdow_cbor->child = malloc(sizeof(sdow_cbor_t));
+		sdow_init_cbor(sdow_cbor);
+		sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder, 1);
+		sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder->child, 2);
+		sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder->child->child, 2);
+		sdow_byte_string(sdow_cbor->sdo_sbor_encoder->child->child->child, mstring->bytes, mstring->byte_sz);
+		sdow_signed_int(sdow_cbor->sdo_sbor_encoder->child->child->child, 50);
+		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder->child->child);
+		sdow_signed_int(sdow_cbor->sdo_sbor_encoder->child->child, 100);
+		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder->child);
+		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder);
+
+		// [50]
+		/*sdow_start_cbor_array(sdow_cbor->sdo_sbor_encoder, 1);
+		sdow_signed_int(sdow_cbor->sdo_sbor_encoder->child, 50);
+		sdow_end_cbor_array(sdow_cbor->sdo_sbor_encoder);*/
+
+		size_t finalLength = cbor_encoder_get_buffer_size(&sdow_cbor->sdo_sbor_encoder->cbor_encoder, sdow_cbor->buffer);
+		long unsigned i;
+		for(i=0; i<finalLength; i++) {
+			printf("%02x", sdow_cbor->buffer[i]);
+		}
+		printf("%s", "Done");
 	}
+
 #else
 	sdo_byte_array_t *mstring = NULL;
 	int mstring_size = get_file_size(DEVICE_MSTRING);
@@ -68,12 +127,11 @@ int32_t msg10(sdo_prot_t *ps)
 #endif
 
 	/* End the object */
-	sdow_end_object(&ps->sdow);
+	// sdow_end_object(&ps->sdow);
 
 	/* This state manages the transition to the next protocol message */
 	ps->state = SDO_STATE_DI_SET_CREDENTIALS;
 	ret = 0;
-
 err:
 	return ret;
 }

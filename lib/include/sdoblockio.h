@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "cbor.h"
 
 #define INT2HEX(i) ((i) <= 9 ? '0' + (i) : 'A' - 10 + (i))
 
@@ -38,6 +39,23 @@ typedef struct _SDOW_s {
 	int (*send)(struct _SDOW_s *);
 	void *send_data;
 } sdow_t;
+
+typedef struct _SDOW_CBOR_ENCODER {
+	CborEncoder cbor_encoder;
+	struct _SDOW_CBOR_ENCODER *child;
+} sdow_cbor_encoder_t;
+
+typedef struct _SDOW_CBOR_S {
+	// CborEncoder parent_encoder;
+	// CborEncoder child_encoder;
+	size_t buffer_length;
+	uint8_t *buffer;
+	int msg_type;
+	sdow_cbor_encoder_t *sdo_sbor_encoder;
+	// struct _SDOW_CBOR_S *child;
+} sdow_cbor_t;
+
+#define CBOR_BUFFER_LENGTH 1024;
 
 #define SDO_FIX_UP_STR "\"0000\""
 #define SDO_FIX_UP_TEMPL "\"%04x\""
@@ -101,6 +119,15 @@ void sdor_read_and_ignore_until_end_sequence(sdor_t *sdor);
 void sdo_write_byte_array_two_int(sdow_t *sdow, uint8_t *buf_iv,
 				  uint32_t buf_iv_sz, uint8_t *bufp,
 				  uint32_t buf_sz);
+
+// CBOR methods
+void sdow_init_cbor(sdow_cbor_t *sdow_cbor);
+void sdow_buffer_init_cbor(sdow_cbor_t *sdow_cbor);
+void sdow_start_cbor_array(sdow_cbor_encoder_t *sdow_cbor, size_t array_items);
+void sdow_byte_string(sdow_cbor_encoder_t *sdow_cbor, uint8_t *bytes , size_t byte_sz);
+void sdow_signed_int(sdow_cbor_encoder_t *sdow_cbor, int value);
+void sdow_end_cbor_array(sdow_cbor_encoder_t *sdow_cbor);
+
 
 #if 0 // Deprecated
 int hexit_to_int(int c);
