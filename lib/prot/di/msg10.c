@@ -78,15 +78,15 @@ int32_t msg10(sdo_prot_t *ps)
 		// data: [[[mstring,50],100]]
 		sdow_cbor = malloc(sizeof(sdow_cbor_t));
 		sdow_init_cbor(sdow_cbor);
-		sdow_start_cbor_array(1);
-		sdow_start_cbor_array(2);
-		sdow_start_cbor_array(2);
-		sdow_byte_string(mstring->bytes, mstring->byte_sz);
-		sdow_signed_int(50);
-		sdow_end_cbor_array();
-		sdow_signed_int(100);
-		sdow_end_cbor_array();
-		sdow_end_cbor_array();
+		sdow_start_cbor_array(sdow_cbor, 1);
+		sdow_start_cbor_array(sdow_cbor, 2);
+		sdow_start_cbor_array(sdow_cbor, 2);
+		sdow_byte_string(sdow_cbor, mstring->bytes, mstring->byte_sz);
+		sdow_signed_int(sdow_cbor, 50);
+		sdow_end_cbor_array(sdow_cbor);
+		sdow_signed_int(sdow_cbor, 100);
+		sdow_end_cbor_array(sdow_cbor);
+		sdow_end_cbor_array(sdow_cbor);
 
 		// [50]
 /*		sdow_init_cbor(sdow_cbor);
@@ -100,6 +100,28 @@ int32_t msg10(sdo_prot_t *ps)
 			printf("%02x", sdow_cbor->buffer[i]);
 		}
 		printf("%s", "Done");
+
+		sdor_cbor_t *sdor_cbor = malloc(sizeof(sdor_cbor_t));
+		memcpy(sdor_cbor->buffer, sdow_cbor->buffer, finalLength);
+		sdor_init_cbor(sdor_cbor);
+		sdor_enter_cbor_array();
+		sdor_enter_cbor_array();
+		sdor_enter_cbor_array();
+		size_t buffer_length = sdor_byte_string_length();
+		uint8_t *buffer = (uint8_t*) malloc(buffer_length);
+		sdor_byte_string(buffer, buffer_length);
+		// sdor_next();
+		int result;
+		sdor_signed_int(&result);
+		// sdor_next();
+		sdor_exit_cbor_array();
+		// sdor_next(); THIS IS NOT NEEDED
+		int result1;
+		sdor_signed_int(&result1);
+		
+		sdor_exit_cbor_array();
+		sdor_exit_cbor_array();
+		printf("%s\n", "Parsed.........");
 	}
 
 #else

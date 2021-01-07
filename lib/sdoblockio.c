@@ -20,7 +20,8 @@
 #define SDO_TAG_MAX_LEN 32
 
 // current encoder
-sdow_cbor_encoder_t *current_encoder;
+// sdow_cbor_encoder_t *current_encoder;
+sdor_cbor_decoder_t *current_decoder;
 
 /*
  * Internal function prototypes
@@ -1063,7 +1064,7 @@ void sdow_init_cbor(sdow_cbor_t *sdow_cbor)
 	sdow_buffer_init_cbor(sdow_cbor);
 	cbor_encoder_init(&sdow_cbor->current->cbor_encoder, sdow_cbor->buffer, sdow_cbor->buffer_length, 0);
 
-	current_encoder = sdow_cbor->current;
+	// current_encoder = sdow_cbor->current;
 }
 
 void sdow_buffer_init_cbor(sdow_cbor_t *sdow_cbor)
@@ -1072,31 +1073,84 @@ void sdow_buffer_init_cbor(sdow_cbor_t *sdow_cbor)
 	sdow_cbor->buffer = (uint8_t*) malloc(sdow_cbor->buffer_length);
 }
 
-void sdow_start_cbor_array(size_t array_items)
+void sdow_start_cbor_array(sdow_cbor_t *sdow_cbor, size_t array_items)
 {
 	// create next, create backlink and move forward.
-	current_encoder->next = malloc(sizeof(sdow_cbor_encoder_t));
-	current_encoder->next->previous = current_encoder;
-	current_encoder = current_encoder->next;
-	cbor_encoder_create_array(&current_encoder->previous->cbor_encoder, 
-		&current_encoder->cbor_encoder, array_items);
+	sdow_cbor->current->next = malloc(sizeof(sdow_cbor_encoder_t));
+	sdow_cbor->current->next->previous = sdow_cbor->current;
+	sdow_cbor->current = sdow_cbor->current->next;
+	cbor_encoder_create_array(&sdow_cbor->current->previous->cbor_encoder, 
+		&sdow_cbor->current->cbor_encoder, array_items);
 
 }
 
-void sdow_byte_string(uint8_t *bytes , size_t byte_sz)
+void sdow_byte_string(sdow_cbor_t *sdow_cbor, uint8_t *bytes , size_t byte_sz)
 {
-	cbor_encode_byte_string(&current_encoder->cbor_encoder, bytes, byte_sz);
+	cbor_encode_byte_string(&sdow_cbor->current->cbor_encoder, bytes, byte_sz);
 }
 
-void sdow_signed_int(int value)
+void sdow_signed_int(sdow_cbor_t *sdow_cbor, int value)
 {
-	cbor_encode_int(&current_encoder->cbor_encoder, value);
+	cbor_encode_int(&sdow_cbor->current->cbor_encoder, value);
 }
 
-void sdow_end_cbor_array(void)
+void sdow_end_cbor_array(sdow_cbor_t *sdow_cbor)
 {
-	cbor_encoder_close_container_checked(&current_encoder->previous->cbor_encoder,
-		&current_encoder->cbor_encoder);
+	cbor_encoder_close_container_checked(&sdow_cbor->current->previous->cbor_encoder,
+		&sdow_cbor->current->cbor_encoder);
 	// move backwards and free previous (TODO)
-	current_encoder = current_encoder->previous;
+	// current_encoder = current_encoder->previous;
+	sdow_cbor->current = sdow_cbor->current->previous;
+}
+
+void sdor_init_cbor(sdor_cbor_t *sdor_cbor) {
+	sdor_cbor->current = malloc(sizeof(sdor_cbor_decoder_t));
+	sdor_cbor->current->next = NULL;
+	sdor_cbor->current->previous = NULL;
+
+    if (cbor_parser_init(sdor_cbor->buffer, sdor_cbor->buffer_length, 0, &sdor_cbor->cbor_parser,
+	 	&sdor_cbor->current->cbor_value) != CborNoError) {
+        printf("%s\n", "Error..............");
+	}
+
+	current_decoder = sdor_cbor->current;
+}
+
+void sdor_enter_cbor_array(void) {
+	// create next, create backlink and move forward.
+	current_decoder->next = malloc(sizeof(sdor_cbor_decoder_t));
+	current_decoder->next->previous = current_decoder;
+	current_decoder = current_decoder->next;
+	cbor_value_enter_container(&current_decoder->previous->cbor_value, 
+		&current_decoder->cbor_value);
+}
+
+size_t sdor_byte_string_length(void) {
+	size_t buffer_length;
+	cbor_value_calculate_string_length(&current_decoder->cbor_value, &buffer_length);
+	return buffer_length;
+}
+
+void sdor_byte_string(uint8_t *buffer, size_t buffer_length) {
+	/*size_t buffer_length;
+	cbor_value_calculate_string_length(&current_decoder->cbor_value, buffer_length);
+	uint8_t *buffer = (uint8_t*) malloc(buffer_length);*/
+	cbor_value_copy_byte_string(&current_decoder->cbor_value, buffer, &buffer_length, NULL);
+	sdor_next();
+}
+
+void sdor_signed_int(int *result) {
+	cbor_value_get_int(&current_decoder->cbor_value, result);
+	sdor_next();
+}
+
+void sdor_exit_cbor_array(void) {
+	cbor_value_leave_container(&current_decoder->previous->cbor_value, 
+		&current_decoder->cbor_value);
+	// move backwards and free previous (TODO)
+	current_decoder = current_decoder->previous;
+}
+
+void sdor_next(void) {
+	cbor_value_advance(&current_decoder->cbor_value);
 }
