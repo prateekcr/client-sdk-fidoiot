@@ -48,14 +48,12 @@ static state_func di_state_fn[] = {
 /*
  * State functions for TO1
  */
-/*
 static state_func to1_state_fn[] = {
     msg30, // TO1.HelloSDO
     msg31, // TO1.HelloSDOAck
     msg32, // TO1.Prove_toSDO
     msg33, // TO1.sdo_redirect
 };
-*/
 
 /*
  * State functions for TO2
@@ -171,10 +169,7 @@ bool sdo_process_states(sdo_prot_t *ps)
 		case SDO_STATE_DI_DONE:
 			state_fn = di_state_fn[DI_ID_TO_STATE_FN(ps->state)];
 			break;
-
-		// TO-DO : Commenting this out until TO1 and TO2 protcols are implemented.
-		// To be uncommented gradually.
-		/*
+	
 		// TO1 states
 		case SDO_STATE_T01_SND_HELLO_SDO:
 		case SDO_STATE_TO1_RCV_HELLO_SDOACK:
@@ -183,6 +178,9 @@ bool sdo_process_states(sdo_prot_t *ps)
 			state_fn = to1_state_fn[TO1_ID_TO_STATE_FN(ps->state)];
 			break;
 
+		// TO-DO : Commenting this out until TO2 protcols are implemented.
+		// To be uncommented gradually.
+/*
 		// TO2 states
 		case SDO_STATE_T02_SND_HELLO_DEVICE:
 		case SDO_STATE_TO2_RCV_PROVE_OVHDR:
@@ -400,9 +398,12 @@ void sdo_send_error_message(sdow_t *sdow, int ecode, int msgnum,
 
 	sdow_next_block(sdow, SDO_TYPE_ERROR);
 	sdow_start_array(sdow, 5);
-	sdow_unsigned_int(sdow, ecode);
-	sdow_unsigned_int(sdow, msgnum);
+	sdow_signed_int(sdow, ecode);
+	sdow_signed_int(sdow, msgnum);
 	sdow_text_string(sdow, errmsg , 0);
+	sdow_signed_int(sdow, (int) time(NULL));
+	uint8_t *buf = {0};
+	sdow_byte_string(sdow, buf, 0);
 	sdow_end_array(sdow);
 }
 
